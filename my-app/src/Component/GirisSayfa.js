@@ -1,15 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom'; // useNavigate'yi ekleyin
 import '../App.css';
 
 const GirisSayfa = () => {
+  const [username, setUsername] = useState(''); // Kullanıcı adını state'de tutun
   const navigate = useNavigate(); // navigate işlevini oluşturun
 
   const handleSignIn = () => {
     // Burada form doğrulama işlemlerini yapabilirsiniz
 
-    // Yönlendirme işlemi
-    navigate('/List'); // ListSayfa'ya yönlendirir
+    // Yönlendirme işlemi ve kullanıcı adını state'e geçirin
+    navigate('/List', { state: { userName: username } }); // ListSayfa'ya yönlendirir
   };
 
   return (
@@ -29,6 +30,8 @@ const GirisSayfa = () => {
               id="username"
               type="text"
               placeholder="Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)} // Kullanıcı adı state'ini güncelle
             />
           </div>
           <div className="mb-6">

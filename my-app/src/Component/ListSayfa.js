@@ -1,29 +1,68 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom'; 
+import axios from 'axios';
 import '../App.css';
 import Header from './Header'; 
 
 const ListSayfa = () => {
   const { state } = useLocation();
   const userName = state?.userName || 'Guest';
+  const userContext = state?.usercontext || 'DefaultContext'; // Default value
+  const userStatus = state?.userstatus || 'Pending'; // Default value
 
   const [inputValue, setInputValue] = useState('');
   const [items, setItems] = useState([]);
   const [editIndex, setEditIndex] = useState(null);
   const [editText, setEditText] = useState('');
 
+  // Fetch all users on component mount
+  useEffect(() => {
+    axios.get('http://localhost:8000/users/')
+      .then(response => {
+        setItems(response.data.map(user => ({ 
+          text: user.username, 
+          status: user.userstatus,
+          userId: user.user_id
+        })));
+      })
+      .catch(error => {
+        console.error("There was an error fetching the users!", error);
+      });
+  }, []);
+
   const handleAddItem = (e) => {
     e.preventDefault();
     if (inputValue.trim() !== '') {
-      setItems([...items, { text: inputValue, status: 'Pending' }]);
-      setInputValue('');
+      axios.post('http://localhost:8000/users/', {
+        username: inputValue,
+        userpassword: 'defaultpassword', // Assuming a default password
+        userstatus: userStatus // Use the status from the login
+      })
+      .then(response => {
+        setItems([...items, { text: response.data.username, status: response.data.userstatus, userId: response.data.user_id }]);
+        setInputValue('');
+      })
+      .catch(error => {
+        console.error("There was an error creating the user!", error);
+      });
     }
   };
 
   const handleDone = (index) => {
-    const newItems = [...items];
-    newItems[index].status = 'Done';
-    setItems(newItems);
+    const item = items[index];
+    axios.put(`http://localhost:8000/users/${item.userId}`, {
+      username: item.text,
+      userpassword: 'defaultpassword', // Keep the password same
+      userstatus: 'Done'
+    })
+    .then(response => {
+      const newItems = [...items];
+      newItems[index].status = 'Done';
+      setItems(newItems);
+    })
+    .catch(error => {
+      console.error("There was an error updating the user!", error);
+    });
   };
 
   const handleUpdateStatus = (index) => {
@@ -32,18 +71,36 @@ const ListSayfa = () => {
   };
 
   const handleSaveEdit = (index) => {
-    const newItems = [...items];
-    newItems[index].text = editText;
-    newItems[index].status = 'Pending'; 
-    setItems(newItems);
-    setEditIndex(null);
-    setEditText('');
+    const item = items[index];
+    axios.put(`http://localhost:8000/users/${item.userId}`, {
+      username: editText,
+      userpassword: 'defaultpassword', // Keep the password same
+      userstatus: 'Pending'
+    })
+    .then(response => {
+      const newItems = [...items];
+      newItems[index].text = editText;
+      newItems[index].status = 'Pending';
+      setItems(newItems);
+      setEditIndex(null);
+      setEditText('');
+    })
+    .catch(error => {
+      console.error("There was an error updating the user!", error);
+    });
   };
 
   const handleDelete = (index) => {
-    const newItems = [...items];
-    newItems.splice(index, 1);
-    setItems(newItems);
+    const item = items[index];
+    axios.delete(`http://localhost:8000/users/${item.userId}`)
+    .then(() => {
+      const newItems = [...items];
+      newItems.splice(index, 1);
+      setItems(newItems);
+    })
+    .catch(error => {
+      console.error("There was an error deleting the user!", error);
+    });
   };
 
   return (
@@ -86,31 +143,31 @@ const ListSayfa = () => {
                 )}
                 <div className="flex-shrink-0 flex space-x-2">
                   {editIndex === index ? (
-                    <button
+                    <button 
+                      className="bg-green-500 text-white px-3 py-1 rounded-lg" 
                       onClick={() => handleSaveEdit(index)}
-                      className="bg-green-500 text-white px-3 py-1 w-24 text-center rounded-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500"
                     >
                       Save
                     </button>
                   ) : (
                     <>
-                      <button
+                      <button 
+                        className="bg-green-500 text-white px-3 py-1 rounded-lg" 
                         onClick={() => handleDone(index)}
-                        className="bg-green-500 text-white px-3 py-1 w-24 text-center rounded-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500"
                       >
                         Done
                       </button>
-                      <button
+                      <button 
+                        className="bg-yellow-500 text-white px-3 py-1 rounded-lg" 
                         onClick={() => handleUpdateStatus(index)}
-                        className="bg-yellow-500 text-white px-3 py-1 w-24 text-center rounded-lg hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500"
                       >
                         Update
                       </button>
                     </>
                   )}
-                  <button
+                  <button 
+                    className="bg-red-500 text-white px-3 py-1 rounded-lg" 
                     onClick={() => handleDelete(index)}
-                    className="bg-red-500 text-white px-3 py-1 w-24 text-center rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500"
                   >
                     Delete
                   </button>

@@ -1,26 +1,34 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import axios from 'axios'; // Import axios
 import '../App.css';
 
 const GirisSayfa = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleSignIn = async () => {
     try {
-      // Make a POST request to the FastAPI backend
+      // Send POST request to create a new user
       const response = await axios.post('http://localhost:8000/users/', {
-        username: username,
+        username,
         userpassword: password,
+        usercontext:'null', // Set the context as needed
+        userstatus: 'Pending' // Set the status as needed
       });
 
-      // If the request is successful, navigate to the ListSayfa
-      navigate('/List', { state: { userName: response.data.username } });
-    } catch (err) {
-      setError('Failed to sign in. Please check your username and password.');
+      // Navigate to ListSayfa with user data
+      navigate('/List', {
+        state: {
+          userName: response.data.username,
+          usercontext: response.data.usercontext,
+          userstatus: response.data.userstatus,
+          password:password
+        }
+      });
+    } catch (error) {
+      console.error('There was an error signing in!', error);
     }
   };
 
@@ -31,13 +39,7 @@ const GirisSayfa = () => {
           Market List
         </h1>
 
-        <form
-          className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSignIn();
-          }}
-        >
+        <form className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="username">
               Username
@@ -63,12 +65,13 @@ const GirisSayfa = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
+            <p className="text-red-500 text-xs italic">Please choose a password.</p>
           </div>
-          {error && <p className="text-red-500 text-xs italic">{error}</p>}
           <div className="flex items-center justify-between">
             <button
               className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-              type="submit"
+              type="button"
+              onClick={handleSignIn}
             >
               Sign In
             </button>

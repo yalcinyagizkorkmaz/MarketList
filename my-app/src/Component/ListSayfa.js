@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom'; 
+import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 import '../App.css';
-import Header from './Header'; 
+import Header from './Header';
 
 const ListSayfa = () => {
   const { state } = useLocation();
   const userName = state?.userName || 'Guest';
-  const userContext = state?.usercontext || 'DefaultContext'; // Default value
-  const userStatus = state?.userstatus || 'Pending'; // Default value
+  const userContext = state?.usercontext || 'null';
+  const userStatus = state?.userstatus || 'Pending';
+  const password = state?.password || ''; // Retrieve the password from state
 
   const [inputValue, setInputValue] = useState('');
   const [items, setItems] = useState([]);
@@ -19,8 +20,8 @@ const ListSayfa = () => {
   useEffect(() => {
     axios.get('http://localhost:8000/users/')
       .then(response => {
-        setItems(response.data.map(user => ({ 
-          text: user.username, 
+        setItems(response.data.map(user => ({
+          text: user.username,
           status: user.userstatus,
           userId: user.user_id
         })));
@@ -35,8 +36,8 @@ const ListSayfa = () => {
     if (inputValue.trim() !== '') {
       axios.post('http://localhost:8000/users/', {
         username: inputValue,
-        userpassword: 'defaultpassword', // Assuming a default password
-        userstatus: userStatus // Use the status from the login
+        userpassword: password, // Use the password from the state
+        userstatus: userStatus
       })
       .then(response => {
         setItems([...items, { text: response.data.username, status: response.data.userstatus, userId: response.data.user_id }]);
@@ -52,7 +53,7 @@ const ListSayfa = () => {
     const item = items[index];
     axios.put(`http://localhost:8000/users/${item.userId}`, {
       username: item.text,
-      userpassword: 'defaultpassword', // Keep the password same
+      userpassword: password, // Keep the password the same
       userstatus: 'Done'
     })
     .then(response => {
@@ -74,7 +75,7 @@ const ListSayfa = () => {
     const item = items[index];
     axios.put(`http://localhost:8000/users/${item.userId}`, {
       username: editText,
-      userpassword: 'defaultpassword', // Keep the password same
+      userpassword: password, // Keep the password the same
       userstatus: 'Pending'
     })
     .then(response => {
@@ -126,8 +127,8 @@ const ListSayfa = () => {
           </form>
           <ul className="mt-6 space-y-2">
             {items.map((item, index) => (
-              <li 
-                key={index} 
+              <li
+                key={index}
                 className="flex items-center justify-between border-b border-gray-200 py-3 text-lg"
               >
                 {editIndex === index ? (
@@ -143,34 +144,34 @@ const ListSayfa = () => {
                 )}
                 <div className="flex-shrink-0 flex space-x-2">
                   {editIndex === index ? (
-                    <button 
-                      className="bg-green-500 text-white px-3 py-1 rounded-lg" 
+                    <button
+                      className="bg-green-500 text-white p-2 rounded-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500"
                       onClick={() => handleSaveEdit(index)}
                     >
                       Save
                     </button>
                   ) : (
                     <>
-                      <button 
-                        className="bg-green-500 text-white px-3 py-1 rounded-lg" 
-                        onClick={() => handleDone(index)}
-                      >
-                        Done
-                      </button>
-                      <button 
-                        className="bg-yellow-500 text-white px-3 py-1 rounded-lg" 
+                      <button
+                        className="bg-yellow-500 text-white p-2 rounded-lg hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500"
                         onClick={() => handleUpdateStatus(index)}
                       >
                         Update
                       </button>
+                      <button
+                        className="bg-green-500 text-white p-2 rounded-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500"
+                        onClick={() => handleDone(index)}
+                      >
+                        Done
+                      </button>
+                      <button
+                        className="bg-red-500 text-white p-2 rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500"
+                        onClick={() => handleDelete(index)}
+                      >
+                        Delete
+                      </button>
                     </>
                   )}
-                  <button 
-                    className="bg-red-500 text-white px-3 py-1 rounded-lg" 
-                    onClick={() => handleDelete(index)}
-                  >
-                    Delete
-                  </button>
                 </div>
               </li>
             ))}

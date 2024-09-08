@@ -3,6 +3,8 @@ import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 import '../App.css';
 import Header from './Header';
+import {jwtDecode} from 'jwt-decode';
+
 
 const ListSayfa = () => {
   const { state } = useLocation();
@@ -16,45 +18,71 @@ const ListSayfa = () => {
   const [editIndex, setEditIndex] = useState(null);
   const [editText, setEditText] = useState('');
 
-  // Fetch all users on component mount
+  // Fetch all items on component mount
   useEffect(() => {
-    axios.get('http://localhost:8000/users/')
+    axios.get('http://localhost:8000/list/')
       .then(response => {
-        setItems(response.data.map(user => ({
-          text: user.username,
-          status: user.userstatus,
-          userId: user.user_id
+        setItems(response.data.map(item => ({
+          text: item.item_name,
+          status: item.item_status,
+          itemId: item.item_id
         })));
       })
       .catch(error => {
-        console.error("There was an error fetching the users!", error);
+        console.error("There was an error fetching the items!", error);
       });
   }, []);
-
   const handleAddItem = (e) => {
     e.preventDefault();
-    if (inputValue.trim() !== '') {
-      axios.post('http://localhost:8000/users/', {
-        username: inputValue,
-        userpassword: password, // Use the password from the state
-        userstatus: userStatus
+    
+    const token = localStorage.getItem('token'); // Get the JWT token from localStorage
+    const decodedToken = jwtDecode(token); // Decode the token to get user_id
+    
+    const userId = decodedToken?.user_id || null; // Ensure user_id is extracted properly
+    
+    if (inputValue.trim() !== '' && userId) {
+      axios.post('http://localhost:8000/list/', {
+        item_name: inputValue,
+        item_status: 'Pending',
+        user_id: userId
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
       })
       .then(response => {
-        setItems([...items, { text: response.data.username, status: response.data.userstatus, userId: response.data.user_id }]);
-        setInputValue('');
+        if (response.data && response.data.item_name && response.data.item_status && response.data.item_id) {
+          setItems([...items, { text: response.data.item_name, status: response.data.item_status, itemId: response.data.item_id }]);
+          setInputValue(''); // Clear the input
+        } else {
+          console.error("Invalid response structure:", response.data);
+        }
       })
       .catch(error => {
-        console.error("There was an error creating the user!", error);
+        console.error("Error creating the item:", error);
       });
+    } else {
+      console.warn("Input value is empty or user ID is invalid.");
     }
   };
+  
+  
+  
 
   const handleDone = (index) => {
     const item = items[index];
-    axios.put(`http://localhost:8000/users/${item.userId}`, {
-      username: item.text,
-      userpassword: password, // Keep the password the same
-      userstatus: 'Done'
+    const token = localStorage.getItem('token'); // JWT token alınıyor
+    const decodedToken = jwt_decode(token); // Token çözülüyor
+    const userId = decodedToken?.user_id || null; // user_id çıkarılıyor
+  
+    axios.put(`http://localhost:8000/list/${item.itemId}`, {
+      item_name: item.text,
+      item_status: 'Done',
+      user_id: userId  // user_id'yi backend'e gönderiyoruz
+    }, {
+      headers: {
+        Authorization: `Bearer ${token}`  // Backend'e JWT token ile doğrulama yapılıyor
+      }
     })
     .then(response => {
       const newItems = [...items];
@@ -62,21 +90,24 @@ const ListSayfa = () => {
       setItems(newItems);
     })
     .catch(error => {
-      console.error("There was an error updating the user!", error);
+      console.error("There was an error updating the item!", error);
     });
   };
-
-  const handleUpdateStatus = (index) => {
-    setEditIndex(index);
-    setEditText(items[index].text);
-  };
-
+  
   const handleSaveEdit = (index) => {
     const item = items[index];
-    axios.put(`http://localhost:8000/users/${item.userId}`, {
-      username: editText,
-      userpassword: password, // Keep the password the same
-      userstatus: 'Pending'
+    const token = localStorage.getItem('token'); // JWT token alınıyor
+    const decodedToken = jwt_decode(token); // Token çözülüyor
+    const userId = decodedToken?.user_id || null; // user_id çıkarılıyor
+  
+    axios.put(`http://localhost:8000/list/${item.itemId}`, {
+      item_name: editText,
+      item_status: 'Pending',
+      user_id: userId // user_id'yi backend'e gönderiyoruz
+    }, {
+      headers: {
+        Authorization: `Bearer ${token}`  // Backend'e JWT token ile doğrulama yapılıyor
+      }
     })
     .then(response => {
       const newItems = [...items];
@@ -87,20 +118,21 @@ const ListSayfa = () => {
       setEditText('');
     })
     .catch(error => {
-      console.error("There was an error updating the user!", error);
+      console.error("There was an error updating the item!", error);
     });
   };
+  
 
   const handleDelete = (index) => {
     const item = items[index];
-    axios.delete(`http://localhost:8000/users/${item.userId}`)
+    axios.delete(`http://localhost:8000/list/${item.itemId}`)
     .then(() => {
       const newItems = [...items];
       newItems.splice(index, 1);
       setItems(newItems);
     })
     .catch(error => {
-      console.error("There was an error deleting the user!", error);
+      console.error("There was an error deleting the item!", error);
     });
   };
 

@@ -1,36 +1,93 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios'; // Import axios
+import axios from 'axios';
+import { jwtDecode } from 'jwt-decode'; // Named import
+
 import '../App.css';
 
 const GirisSayfa = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
   const navigate = useNavigate();
 
-  const handleSignIn = async () => {
+  const handleRegister = async (event) => {
+    event.preventDefault();
+    setErrorMessage('');
+  
+    const requestData = {
+      username: username,
+      userpassword: password,
+    };
+  
     try {
-      // Send POST request to create a new user
-      const response = await axios.post('http://localhost:8000/users/', {
-        username,
-        userpassword: password,
-        usercontext:'null', // Set the context as needed
-        userstatus: 'Pending' // Set the status as needed
+      const response = await axios.post('http://localhost:8000/register/', requestData, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
-
-      // Navigate to ListSayfa with user data
-      navigate('/List', {
-        state: {
-          userName: response.data.username,
-          usercontext: response.data.usercontext,
-          userstatus: response.data.userstatus,
-          password:password
-        }
-      });
+  
+      console.log("Registration response:", response); // Debugging line
+  
+      if (response.status === 200) {
+        console.log("Registration successful, navigating to List"); // Debugging line
+        setErrorMessage('User registered successfully!');
+        navigate('/List', {
+          state: { userName: username } // Ensure this state is properly handled in the List component
+        });
+      } else {
+        // Add a fallback to handle non-200 statuses
+        setErrorMessage(response.data.detail || 'An error occurred during registration.');
+      }
     } catch (error) {
-      console.error('There was an error signing in!', error);
+      // Add more detailed error handling
+      if (error.response) {
+        console.error("Error during registration:", error.response.data); // Detailed logging
+        setErrorMessage(error.response.data.detail || 'An unexpected error occurred.');
+      } else if (error.request) {
+        console.error("No response received:", error.request); // Detailed logging
+        setErrorMessage('No response received from server.');
+      } else {
+        console.error("Error setting up request:", error.message); // Detailed logging
+        setErrorMessage('Error setting up request.');
+      }
     }
   };
+  
+  
+
+  const handleLogin = async () => {
+    try {
+       const response = await axios.post('http://localhost:8000/login/', {
+          username,
+          userpassword: password,
+       });
+ 
+       if (response.status === 200) {
+          const token = response.data.access_token;
+          localStorage.setItem('token', token);
+ 
+          const decodedToken = jwtDecode(token);
+          const user_id = decodedToken.user_id;
+ 
+          navigate('/List', {
+             state: { userName: username, user_id: user_id }
+          });
+       } else {
+          setErrorMessage('Login failed. Please try again.');
+       }
+    } catch (error) {
+       console.error("Error during login:", error.message);
+       if (error.response) {
+          setErrorMessage(error.response.data.detail || 'Login failed.');
+       } else if (error.request) {
+          setErrorMessage('No response received from server.');
+       } else {
+          setErrorMessage('Login failed.');
+       }
+    }
+ };
+ 
 
   return (
     <div className="flex items-center justify-center h-screen">
@@ -39,7 +96,10 @@ const GirisSayfa = () => {
           Market List
         </h1>
 
-        <form className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+        <form className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4" onSubmit={handleRegister}>
+          {errorMessage && (
+            <p className="text-red-500 text-xs italic mb-4">{errorMessage}</p>
+          )}
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="username">
               Username
@@ -65,15 +125,16 @@ const GirisSayfa = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
-            <p className="text-red-500 text-xs italic">Please choose a password.</p>
+            {password.length === 0 && (
+              <p className="text-red-500 text-xs italic">Please choose a password.</p>
+            )}
           </div>
           <div className="flex items-center justify-between">
             <button
               className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-              type="button"
-              onClick={handleSignIn}
+              type="submit"
             >
-              Sign In
+              Sign Up
             </button>
           </div>
         </form>

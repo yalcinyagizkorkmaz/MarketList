@@ -3,8 +3,7 @@ import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 import '../App.css';
 import Header from './Header';
-import {jwtDecode} from 'jwt-decode';
-
+import {jwtDecode }from 'jwt-decode'; // Corrected import for jwtDecode
 
 const ListSayfa = () => {
   const { state } = useLocation();
@@ -32,11 +31,12 @@ const ListSayfa = () => {
         console.error("There was an error fetching the items!", error);
       });
   }, []);
+
   const handleAddItem = (e) => {
     e.preventDefault();
     
     const token = localStorage.getItem('token'); // Get the JWT token from localStorage
-    const decodedToken = jwtDecode(token); // Decode the token to get user_id
+    const decodedToken = jwtDecode(token); // Corrected to use jwtDecode
     
     const userId = decodedToken?.user_id || null; // Ensure user_id is extracted properly
     
@@ -65,23 +65,57 @@ const ListSayfa = () => {
       console.warn("Input value is empty or user ID is invalid.");
     }
   };
-  
-  
-  
 
+  const handleUpdateStatus = (index) => {
+    const item = items[index]; // Get the item to be updated
+    const token = localStorage.getItem('token'); 
+    const decodedToken = jwtDecode(token); 
+    const userId = decodedToken?.user_id || null;
+  
+    // Ensure that the itemId and userId are valid before proceeding
+    if (!item?.itemId || !userId) {
+      console.error("Invalid item ID or user ID");
+      return;
+    }
+  
+    axios.put(`http://localhost:8000/list/${item.itemId}`, {
+      item_name: item.text,
+      item_status: 'Updated', // Change the status
+      user_id: userId
+    }, {
+      headers: {
+        Authorization: `Bearer ${token}` // Add token to the request header
+      }
+    })
+    .then(response => {
+      // Check if the API response was successful and the structure is correct
+      if (response.status === 200 && response.data) {
+        // Create a copy of the items and update the status of the relevant item
+        const updatedItems = [...items];
+        updatedItems[index].status = 'Updated'; // Change the status to "Updated"
+        setItems(updatedItems); // Update the state
+      } else {
+        console.error("Invalid response structure or status:", response.data);
+      }
+    })
+    .catch(error => {
+      console.error("Error updating the status!", error);
+    });
+  };
+  
   const handleDone = (index) => {
     const item = items[index];
-    const token = localStorage.getItem('token'); // JWT token alınıyor
-    const decodedToken = jwt_decode(token); // Token çözülüyor
-    const userId = decodedToken?.user_id || null; // user_id çıkarılıyor
+    const token = localStorage.getItem('token'); 
+    const decodedToken = jwtDecode(token); 
+    const userId = decodedToken?.user_id || null;
   
     axios.put(`http://localhost:8000/list/${item.itemId}`, {
       item_name: item.text,
       item_status: 'Done',
-      user_id: userId  // user_id'yi backend'e gönderiyoruz
+      user_id: userId  
     }, {
       headers: {
-        Authorization: `Bearer ${token}`  // Backend'e JWT token ile doğrulama yapılıyor
+        Authorization: `Bearer ${token}`
       }
     })
     .then(response => {
@@ -93,20 +127,20 @@ const ListSayfa = () => {
       console.error("There was an error updating the item!", error);
     });
   };
-  
+
   const handleSaveEdit = (index) => {
     const item = items[index];
-    const token = localStorage.getItem('token'); // JWT token alınıyor
-    const decodedToken = jwt_decode(token); // Token çözülüyor
-    const userId = decodedToken?.user_id || null; // user_id çıkarılıyor
+    const token = localStorage.getItem('token'); 
+    const decodedToken = jwtDecode(token); 
+    const userId = decodedToken?.user_id || null;
   
     axios.put(`http://localhost:8000/list/${item.itemId}`, {
       item_name: editText,
       item_status: 'Pending',
-      user_id: userId // user_id'yi backend'e gönderiyoruz
+      user_id: userId
     }, {
       headers: {
-        Authorization: `Bearer ${token}`  // Backend'e JWT token ile doğrulama yapılıyor
+        Authorization: `Bearer ${token}`
       }
     })
     .then(response => {
@@ -121,7 +155,6 @@ const ListSayfa = () => {
       console.error("There was an error updating the item!", error);
     });
   };
-  
 
   const handleDelete = (index) => {
     const item = items[index];
@@ -186,7 +219,10 @@ const ListSayfa = () => {
                     <>
                       <button
                         className="bg-yellow-500 text-white p-2 rounded-lg hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                        onClick={() => handleUpdateStatus(index)}
+                        onClick={() => {
+                          setEditIndex(index); // Enter edit mode
+                          setEditText(item.text); // Set current text to edit input
+                        }}
                       >
                         Update
                       </button>

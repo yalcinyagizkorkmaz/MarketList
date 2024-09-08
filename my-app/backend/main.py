@@ -64,6 +64,7 @@ class MarketListCreate(BaseModel):
 
 class MarketListUpdate(BaseModel):
     item_status: str
+    item_name:str
 
 class MarketListResponse(BaseModel):
     item_id: int
@@ -258,8 +259,8 @@ def get_market_list_items(db: Session = Depends(get_db)):
         logging.error(f"Unexpected error: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
     
-    @app.put("/list/{item_id}")
-    def update_market_list_status(item_id: int, item_data: MarketListUpdate, db: Session = Depends(get_db)):
+@app.put("/list/{item_id}")
+def update_market_list_status(item_id: int, item_data: MarketListUpdate, db: Session = Depends(get_db)):
     # item_id'ye göre item'ı bul
     item = db.query(Market_List).filter(Market_List.item_id == item_id).first()
 
@@ -268,11 +269,13 @@ def get_market_list_items(db: Session = Depends(get_db)):
     
     # Sadece item_status'u güncelle
     item.item_status = item_data.item_status
+    item.item_name=item_data.item_name
 
     db.commit()  # Değişiklikleri veritabanına kaydet
     db.refresh(item)  # Güncellenmiş item'i al
 
     return {"message": "Item status updated successfully", "item": item}
+
 
 
 

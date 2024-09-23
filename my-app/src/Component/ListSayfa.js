@@ -182,16 +182,23 @@ const ListSayfa = () => {
 
   const handleDelete = (index) => {
     const item = items[index];
-    axios.delete(`http://localhost:8000/list/${item.itemId}`)
+    const token = localStorage.getItem('token'); // Token'ı buradan alıyoruz
+  
+    axios.delete(`http://localhost:8000/list/${item.itemId}`, {
+      headers: {
+        Authorization: `Bearer ${token}` // Token'ı yetkilendirme başlığına ekliyoruz
+      }
+    })
     .then(() => {
-      const newItems = [...items];
-      newItems.splice(index, 1);
+      const newItems = items.filter((_, i) => i !== index);
       setItems(newItems);
     })
     .catch(error => {
-      console.error("There was an error deleting the item!", error);
+      console.error("There was an error deleting the item!", error.response ? error.response.data : error);
     });
   };
+  
+  
 
   return (
     <div className="flex flex-col h-screen">

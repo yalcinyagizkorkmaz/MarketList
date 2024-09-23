@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 import '../App.css';
 import Header from './Header';
-import {jwtDecode} from 'jwt-decode';
+import {jwtDecode} from 'jwt-decode';  // Correct import of jwt-decode
 
 const ListSayfa = () => {
   const { state } = useLocation();
@@ -18,23 +18,25 @@ const ListSayfa = () => {
     const token = localStorage.getItem('token');
     console.log("Retrieved token:", token); // Debugging line
     
+
     if (!token) {
       console.error("No token found!");
       return;
     }
-  
+
     try {
-      const decodedToken = jwtDecode(token);
+      const decodedToken = jwtDecode(token);  // Correctly decode token here
       if (decodedToken.exp * 1000 < Date.now()) {
         console.error("Token has expired");
+        localStorage.removeItem('token');  // Optionally remove expired token
         return;
       }
     } catch (error) {
       console.error("Invalid token", error);
       return;
     }
-  
-    // Fetch items
+
+    // Fetch items if token is valid
     axios.get('http://127.0.0.1:8000/list/', {
       headers: {
         Authorization: `Bearer ${token}`
@@ -52,8 +54,6 @@ const ListSayfa = () => {
       console.error("There was an error fetching the items!", error);
     });
   }, []);
-  
-  
 
   const handleAddItem = (e) => {
     e.preventDefault();

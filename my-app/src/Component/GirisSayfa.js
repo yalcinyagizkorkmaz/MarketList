@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { jwtDecode } from 'jwt-decode'; // Named import
+import {jwtDecode} from 'jwt-decode'; // Düzeltilmiş import
 
 import '../App.css';
 
@@ -27,69 +27,53 @@ const GirisSayfa = () => {
         },
       });
   
-      console.log("Registration response:", response); // Debugging line
-  
       if (response.status === 200) {
-        console.log("Registration successful, navigating to List"); // Debugging line
         setErrorMessage('User registered successfully!');
-        navigate('/List', {
-          state: { userName: username } // Ensure this state is properly handled in the List component
-        });
+        // Başarılı kayıt sonrası kullanıcıyı login yapıyoruz
+        handleLogin(); 
       } else {
-        // Add a fallback to handle non-200 statuses
         setErrorMessage(response.data.detail || 'An error occurred during registration.');
       }
     } catch (error) {
-      // Add more detailed error handling
       if (error.response) {
-        console.error("Error during registration:", error.response.data); // Detailed logging
         setErrorMessage(error.response.data.detail || 'An unexpected error occurred.');
-      } else if (error.request) {
-        console.error("No response received:", error.request); // Detailed logging
-        setErrorMessage('No response received from server.');
       } else {
-        console.error("Error setting up request:", error.message); // Detailed logging
         setErrorMessage('Error setting up request.');
       }
     }
   };
-  
-  
 
-  const handleLogin = async () => {
+  const handleLogin = async (event) => {
+    event && event.preventDefault();
+    setErrorMessage('');
+  
     try {
-       const response = await axios.post('http://localhost:8000/login/', {
-          username,
-          userpassword: password,
-       });
- 
-       if (response.status === 200) {
-          const token = response.data.access_token;
-          localStorage.setItem('token', token);
- 
-          const decodedToken = jwtDecode(token);
-          const user_id = decodedToken.user_id;
-         
- 
-          navigate('/List', {
-             state: { userName: username, user_id: user_id }
-          });
-       } else {
-          setErrorMessage('Login failed. Please try again.');
-       }
+      const response = await axios.post('http://localhost:8000/login/', {
+        username,
+        userpassword: password,
+      });
+  
+      if (response.status === 200) {
+        const token = response.data.access_token;
+        localStorage.setItem('token', token);
+  
+        const decodedToken = jwtDecode(token);
+        const user_id = decodedToken.user_id;
+  
+        navigate('/List', {
+          state: { userName: username, user_id: user_id }
+        });
+      } else {
+        setErrorMessage('Login failed. Please try again.');
+      }
     } catch (error) {
-       console.error("Error during login:", error.message);
-       if (error.response) {
-          setErrorMessage(error.response.data.detail || 'Login failed.');
-       } else if (error.request) {
-          setErrorMessage('No response received from server.');
-       } else {
-          setErrorMessage('Login failed.');
-       }
+      if (error.response) {
+        setErrorMessage(error.response.data.detail || 'Login failed.');
+      } else {
+        setErrorMessage('No response received from server.');
+      }
     }
-    
- };
- 
+  };
 
   return (
     <div className="flex items-center justify-center h-screen">

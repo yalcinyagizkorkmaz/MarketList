@@ -69,6 +69,7 @@ const GirisSayfa = () => {
  
           const decodedToken = jwtDecode(token);
           const user_id = decodedToken.user_id;
+         
  
           navigate('/List', {
              state: { userName: username, user_id: user_id }
@@ -86,6 +87,7 @@ const GirisSayfa = () => {
           setErrorMessage('Login failed.');
        }
     }
+    
  };
  
 

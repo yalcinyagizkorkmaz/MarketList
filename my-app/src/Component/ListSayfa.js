@@ -3,43 +3,70 @@ import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 import '../App.css';
 import Header from './Header';
-import {jwtDecode }from 'jwt-decode'; // Corrected import for jwtDecode
+import {jwtDecode} from 'jwt-decode';
 
 const ListSayfa = () => {
   const { state } = useLocation();
   const userName = state?.userName || 'Guest';
-  const userContext = state?.usercontext || 'null';
-  const userStatus = state?.userstatus || 'Pending';
-  const password = state?.password || ''; // Retrieve the password from state
 
   const [inputValue, setInputValue] = useState('');
   const [items, setItems] = useState([]);
   const [editIndex, setEditIndex] = useState(null);
   const [editText, setEditText] = useState('');
 
-  // Fetch all items on component mount
   useEffect(() => {
-    axios.get('http://localhost:8000/list/')
-      .then(response => {
-        setItems(response.data.map(item => ({
-          text: item.item_name,
-          status: item.item_status,
-          itemId: item.item_id
-        })));
-      })
-      .catch(error => {
-        console.error("There was an error fetching the items!", error);
-      });
+    const token = localStorage.getItem('token');
+    console.log("Retrieved token:", token); // Debugging line
+    
+    if (!token) {
+      console.error("No token found!");
+      return;
+    }
+  
+    try {
+      const decodedToken = jwtDecode(token);
+      if (decodedToken.exp * 1000 < Date.now()) {
+        console.error("Token has expired");
+        return;
+      }
+    } catch (error) {
+      console.error("Invalid token", error);
+      return;
+    }
+  
+    // Fetch items
+    axios.get('http://127.0.0.1:8000/list/', {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+    .then(response => {
+      console.log("Fetched items:", response.data);
+      setItems(response.data.map(item => ({
+        text: item.item_name,
+        status: item.item_status,
+        itemId: item.item_id,
+      })));
+    })
+    .catch(error => {
+      console.error("There was an error fetching the items!", error);
+    });
   }, []);
+  
+  
 
   const handleAddItem = (e) => {
     e.preventDefault();
     
-    const token = localStorage.getItem('token'); // Get the JWT token from localStorage
-    const decodedToken = jwtDecode(token); // Corrected to use jwtDecode
-    
-    const userId = decodedToken?.user_id || null; // Ensure user_id is extracted properly
-    
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.warn("No token found for adding item.");
+      return;
+    }
+
+    const decodedToken = jwtDecode(token);
+    const userId = decodedToken?.user_id || null;
+
     if (inputValue.trim() !== '' && userId) {
       axios.post('http://localhost:8000/list/', {
         item_name: inputValue,
@@ -53,7 +80,7 @@ const ListSayfa = () => {
       .then(response => {
         if (response.data && response.data.item_name && response.data.item_status && response.data.item_id) {
           setItems([...items, { text: response.data.item_name, status: response.data.item_status, itemId: response.data.item_id }]);
-          setInputValue(''); // Clear the input
+          setInputValue('');
         } else {
           console.error("Invalid response structure:", response.data);
         }
@@ -67,33 +94,30 @@ const ListSayfa = () => {
   };
 
   const handleUpdateStatus = (index) => {
-    const item = items[index]; // Get the item to be updated
-    const token = localStorage.getItem('token'); 
-    const decodedToken = jwtDecode(token); 
+    const item = items[index];
+    const token = localStorage.getItem('token');
+    const decodedToken = jwtDecode(token);
     const userId = decodedToken?.user_id || null;
-  
-    // Ensure that the itemId and userId are valid before proceeding
+
     if (!item?.itemId || !userId) {
       console.error("Invalid item ID or user ID");
       return;
     }
-  
+
     axios.put(`http://localhost:8000/list/${item.itemId}`, {
       item_name: item.text,
-      item_status: 'Updated', // Change the status
+      item_status: 'Updated',
       user_id: userId
     }, {
       headers: {
-        Authorization: `Bearer ${token}` // Add token to the request header
+        Authorization: `Bearer ${token}`
       }
     })
     .then(response => {
-      // Check if the API response was successful and the structure is correct
       if (response.status === 200 && response.data) {
-        // Create a copy of the items and update the status of the relevant item
         const updatedItems = [...items];
-        updatedItems[index].status = 'Updated'; // Change the status to "Updated"
-        setItems(updatedItems); // Update the state
+        updatedItems[index].status = 'Updated';
+        setItems(updatedItems);
       } else {
         console.error("Invalid response structure or status:", response.data);
       }
@@ -102,13 +126,13 @@ const ListSayfa = () => {
       console.error("Error updating the status!", error);
     });
   };
-  
+
   const handleDone = (index) => {
     const item = items[index];
-    const token = localStorage.getItem('token'); 
-    const decodedToken = jwtDecode(token); 
+    const token = localStorage.getItem('token');
+    const decodedToken = jwtDecode(token);
     const userId = decodedToken?.user_id || null;
-  
+
     axios.put(`http://localhost:8000/list/${item.itemId}`, {
       item_name: item.text,
       item_status: 'Done',
@@ -130,10 +154,10 @@ const ListSayfa = () => {
 
   const handleSaveEdit = (index) => {
     const item = items[index];
-    const token = localStorage.getItem('token'); 
-    const decodedToken = jwtDecode(token); 
+    const token = localStorage.getItem('token');
+    const decodedToken = jwtDecode(token);
     const userId = decodedToken?.user_id || null;
-  
+
     axios.put(`http://localhost:8000/list/${item.itemId}`, {
       item_name: editText,
       item_status: 'Pending',
@@ -220,8 +244,8 @@ const ListSayfa = () => {
                       <button
                         className="bg-yellow-500 text-white p-2 rounded-lg hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500"
                         onClick={() => {
-                          setEditIndex(index); // Enter edit mode
-                          setEditText(item.text); // Set current text to edit input
+                          setEditIndex(index);
+                          setEditText(item.text);
                         }}
                       >
                         Update

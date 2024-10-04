@@ -1,13 +1,36 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../App.css';
 
 const Header = ({ userName }) => {
   const navigate = useNavigate();
 
+  // Geri/ileri navigasyonu önleyin ve List sayfasına yönlendirin
+  useEffect(() => {
+    const handlePopState = (e) => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/'); // Token yoksa giriş sayfasına yönlendir
+      } else {
+        // Token varsa List sayfasına yönlendir
+        navigate('/List');
+      }
+    };
+
+    // Geçerli sayfayı geçmişe ekle
+    window.history.pushState(null, null, window.location.href);
+    // Popstate olayına dinleyici ekle
+    window.addEventListener('popstate', handlePopState);
+
+    // Temizleme fonksiyonu
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [navigate]);
+
   const handleLogout = () => {
-    localStorage.removeItem('token'); // Remove the token from localStorage
-    navigate('/'); // Redirect to login page
+    localStorage.removeItem('token'); // LocalStorage'dan token'ı kaldır
+    navigate('/'); // Giriş sayfasına yönlendir
   };
 
   return (

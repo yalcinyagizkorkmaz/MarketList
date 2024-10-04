@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 import '../App.css';
 import Header from './Header';
-import {jwtDecode} from 'jwt-decode';  // Correct import of jwt-decode
+import { jwtDecode } from 'jwt-decode'; // Correct import of jwt-decode
 
 const ListSayfa = () => {
   const { state } = useLocation();
@@ -16,23 +16,15 @@ const ListSayfa = () => {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    console.log("Retrieved token:", token); // Debugging line
-    
-
-    if (!token) {
-      console.error("No token found!");
-      return;
-    }
+    if (!token) return;
 
     try {
-      const decodedToken = jwtDecode(token);  // Correctly decode token here
+      const decodedToken = jwtDecode(token);
       if (decodedToken.exp * 1000 < Date.now()) {
-        console.error("Token has expired");
-        localStorage.removeItem('token');  // Optionally remove expired token
+        localStorage.removeItem('token'); // Optionally remove expired token
         return;
       }
     } catch (error) {
-      console.error("Invalid token", error);
       return;
     }
 
@@ -43,7 +35,6 @@ const ListSayfa = () => {
       }
     })
     .then(response => {
-      console.log("Fetched items:", response.data);
       setItems(response.data.map(item => ({
         text: item.item_name,
         status: item.item_status,
@@ -55,14 +46,38 @@ const ListSayfa = () => {
     });
   }, []);
 
+  // Export functions
+  const exportToJson = () => {
+    const json = JSON.stringify(items, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'items.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportToCsv = () => {
+    const csvRows = [
+      ['Item Name', 'Status'], // header row
+      ...items.map(item => [item.text, item.status]) // data rows
+    ];
+    const csvString = csvRows.map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'items.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleAddItem = (e) => {
     e.preventDefault();
     
     const token = localStorage.getItem('token');
-    if (!token) {
-      console.warn("No token found for adding item.");
-      return;
-    }
+    if (!token) return;
 
     const decodedToken = jwtDecode(token);
     const userId = decodedToken?.user_id || null;
@@ -78,18 +93,12 @@ const ListSayfa = () => {
         }
       })
       .then(response => {
-        if (response.data && response.data.item_name && response.data.item_status && response.data.item_id) {
-          setItems([...items, { text: response.data.item_name, status: response.data.item_status, itemId: response.data.item_id }]);
-          setInputValue('');
-        } else {
-          console.error("Invalid response structure:", response.data);
-        }
+        setItems([...items, { text: response.data.item_name, status: response.data.item_status, itemId: response.data.item_id }]);
+        setInputValue('');
       })
       .catch(error => {
         console.error("Error creating the item:", error);
       });
-    } else {
-      console.warn("Input value is empty or user ID is invalid.");
     }
   };
 
@@ -98,11 +107,6 @@ const ListSayfa = () => {
     const token = localStorage.getItem('token');
     const decodedToken = jwtDecode(token);
     const userId = decodedToken?.user_id || null;
-
-    if (!item?.itemId || !userId) {
-      console.error("Invalid item ID or user ID");
-      return;
-    }
 
     axios.put(`http://localhost:8000/list/${item.itemId}`, {
       item_name: item.text,
@@ -114,13 +118,9 @@ const ListSayfa = () => {
       }
     })
     .then(response => {
-      if (response.status === 200 && response.data) {
-        const updatedItems = [...items];
-        updatedItems[index].status = 'Updated';
-        setItems(updatedItems);
-      } else {
-        console.error("Invalid response structure or status:", response.data);
-      }
+      const updatedItems = [...items];
+      updatedItems[index].status = 'Updated';
+      setItems(updatedItems);
     })
     .catch(error => {
       console.error("Error updating the status!", error);
@@ -182,11 +182,11 @@ const ListSayfa = () => {
 
   const handleDelete = (index) => {
     const item = items[index];
-    const token = localStorage.getItem('token'); // Token'ı buradan alıyoruz
-  
+    const token = localStorage.getItem('token');
+
     axios.delete(`http://localhost:8000/list/${item.itemId}`, {
       headers: {
-        Authorization: `Bearer ${token}` // Token'ı yetkilendirme başlığına ekliyoruz
+        Authorization: `Bearer ${token}`
       }
     })
     .then(() => {
@@ -197,8 +197,6 @@ const ListSayfa = () => {
       console.error("There was an error deleting the item!", error.response ? error.response.data : error);
     });
   };
-  
-  
 
   return (
     <div className="flex flex-col h-screen">
@@ -275,6 +273,22 @@ const ListSayfa = () => {
               </li>
             ))}
           </ul>
+
+          {/* Export buttons */}
+          <div className="mt-4 flex space-x-4">
+            <button
+             className="bg-orange-600 text-white p-2 rounded-lg hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+              onClick={exportToJson}
+            >
+              Export to JSON
+            </button>
+            <button
+             className="bg-purple-600 text-white p-2 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              onClick={exportToCsv}
+            >
+              Export to CSV
+            </button>
+          </div>
         </div>
       </div>
     </div>

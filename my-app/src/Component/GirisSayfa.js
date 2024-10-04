@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import {jwtDecode} from 'jwt-decode'; // Düzeltilmiş import
+import {jwtDecode}from 'jwt-decode'; // Düzeltilmiş import
 
 import '../App.css';
 
@@ -29,20 +29,24 @@ const GirisSayfa = () => {
   
       if (response.status === 200) {
         setErrorMessage('User registered successfully!');
-        // Başarılı kayıt sonrası kullanıcıyı login yapıyoruz
-        handleLogin(); 
+        // After successful registration, log in the user
+        handleLogin();
       } else {
         setErrorMessage(response.data.detail || 'An error occurred during registration.');
       }
     } catch (error) {
       if (error.response) {
-        setErrorMessage(error.response.data.detail || 'An unexpected error occurred.');
+        if (error.response.status === 409) {
+          setErrorMessage('This user is already registered.');
+        } else {
+          setErrorMessage(error.response.data.detail || 'An unexpected error occurred.');
+        }
       } else {
         setErrorMessage('Error setting up request.');
       }
     }
   };
-
+  
   const handleLogin = async (event) => {
     event && event.preventDefault();
     setErrorMessage('');
@@ -111,25 +115,22 @@ const GirisSayfa = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
-            {password.length === 0 && (
-              <p className="text-red-500 text-xs italic">Please choose a password.</p>
-            )}
           </div>
           <div className="flex items-center justify-between">
-          <button
-    className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-r focus:outline-none focus:shadow-outline"
-    type="button" // Bu login butonuna click event ekleyebilirsin.
-  >
-    Login
-  </button>
+            <button
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-r focus:outline-none focus:shadow-outline"
+              type="button"
+              onClick={handleLogin} // Trigger login when clicked
+            >
+              Login
+            </button>
             
-          <button
-    className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-l focus:outline-none focus:shadow-outline"
-    type="submit"
-  >
-    Sign Up
-  </button>
-
+            <button
+              className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-l focus:outline-none focus:shadow-outline"
+              type="submit" // Trigger registration when clicked
+            >
+              Sign Up
+            </button>
           </div>
         </form>
         <p className="text-center text-gray-500 text-xs">

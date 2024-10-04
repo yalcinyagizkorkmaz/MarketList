@@ -137,20 +137,28 @@ def token_login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
 
 
 
-
+from fastapi import HTTPException, status
 
 @app.post("/register/")
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.username == user.username).first()
-    if db_user:
-        return {"message": "User already registered", "user_id": db_user.user_id}
     
+    if db_user:
+        # If user is already registered, raise HTTP 409 Conflict
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="User already registered"
+        )
+    
+    # If the user is not found, register the new user
     hashed_password = get_password_hash(user.userpassword)
     new_user = User(username=user.username, userpassword=hashed_password)
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+    
     return {"message": "User registered successfully", "user_id": new_user.user_id}
+
 
 # Login User Endpoint
 @app.post("/login/")
